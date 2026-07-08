@@ -1,0 +1,462 @@
+# ARP-002-10 – Service Lifecycle Manager Interface Contract
+
+**Architecture Readiness Package**
+
+| Item | Value |
+|------|-------|
+| Document ID | ARP-002-10 |
+| Document Name | Service Lifecycle Manager Interface Contract |
+| Package | ARP-002 – Service Interface Contracts |
+| Status | Draft |
+| Version | 1.0.0 |
+| Owner | Chief Systems Architect |
+| Depends On | AP-001, AP-002, ARP-001, ARP-002-01 through ARP-002-09 |
+| Supersedes | None |
+
+---
+
+# 1. Purpose
+
+This document defines the public implementation contract for the Service Lifecycle Manager.
+
+The Service Lifecycle Manager is the authoritative platform component responsible for governing the operational lifecycle of all platform services after bootstrap has completed.
+
+Its purpose is to provide a consistent, deterministic mechanism for service registration, state management, health monitoring, dependency awareness, graceful shutdown, and lifecycle event coordination.
+
+This document extends the approved architecture.
+
+It SHALL NOT modify the architectural behaviour defined by:
+
+- AEP-002-17 Service Lifecycle & Dependency Management Specification
+- AEP-002-16 Platform Bootstrap Sequence Specification
+- AEP-002-18 Platform Reference Implementation Specification
+
+---
+
+# 2. Scope
+
+This specification defines:
+
+- service lifecycle responsibilities
+- service registration
+- lifecycle state management
+- health monitoring
+- dependency awareness
+- lifecycle events
+- graceful shutdown
+- dependency contracts
+- extension requirements
+- testing requirements
+
+Implementation details are intentionally excluded.
+
+---
+
+# 3. Service Overview
+
+The Service Lifecycle Manager provides centralized lifecycle management for all platform services.
+
+Its responsibilities include:
+
+- registering services
+- tracking service state
+- exposing service status
+- monitoring health
+- coordinating lifecycle transitions
+- managing orderly shutdown
+- exposing platform operational state
+
+The Service Lifecycle Manager SHALL provide the authoritative runtime view of all platform services.
+
+---
+
+# 4. Service Identity
+
+| Property | Value |
+|----------|-------|
+| Service Name | Service Lifecycle Manager |
+| Package | `vibe.lifecycle` |
+| Primary Class | `ServiceLifecycleManager` |
+| Lifetime | Singleton |
+| Thread Safety | Required |
+| Public | Yes |
+
+---
+
+# 5. Responsibilities
+
+The Service Lifecycle Manager SHALL:
+
+- register platform services
+- maintain service state
+- expose lifecycle information
+- monitor service health
+- coordinate service shutdown
+- publish lifecycle events
+- enforce lifecycle consistency
+
+The Service Lifecycle Manager SHALL NOT:
+
+- initialize services directly
+- implement business logic
+- perform AI inference
+- access repositories
+- validate architecture artifacts
+
+Service initialization remains the responsibility of the Bootstrap Service.
+
+---
+
+# 6. Public Interface
+
+The service SHALL expose operations equivalent to the following logical interface.
+
+```
+initialize()
+
+register(service)
+
+unregister(service)
+
+get_service(name)
+
+list_services()
+
+status()
+
+health()
+
+shutdown()
+```
+
+Equivalent language-specific implementations are permitted provided externally observable behaviour remains identical.
+
+---
+
+# 7. Lifecycle Contract
+
+The Service Lifecycle Manager SHALL become active after successful platform bootstrap.
+
+Lifecycle sequence:
+
+1. Initialize manager
+2. Register mandatory services
+3. Publish lifecycle availability
+4. Monitor service state
+5. Coordinate runtime lifecycle
+6. Coordinate graceful shutdown
+
+The manager SHALL remain active until platform termination.
+
+---
+
+# 8. Dependency Contract
+
+The Service Lifecycle Manager SHALL depend upon:
+
+- Configuration Service
+- Logging Service
+- Bootstrap Service
+
+The Service Lifecycle Manager SHALL NOT depend upon:
+
+- Repository Service
+- Prompt Management Service
+- AI Provider Service
+- MCP Client Service
+- Validation Service
+
+Managed services SHALL register with the Lifecycle Manager through the public interface.
+
+---
+
+# 9. Service Registration Contract
+
+Each managed service SHALL register with:
+
+- unique service identifier
+- service name
+- service version
+- lifecycle state
+- dependency metadata
+- health provider
+
+Duplicate service identifiers SHALL be rejected.
+
+---
+
+# 10. Service State Contract
+
+Each registered service SHALL exist in exactly one lifecycle state.
+
+The standard lifecycle states are:
+
+```
+Registered
+
+↓
+
+Initializing
+
+↓
+
+Ready
+
+↓
+
+Degraded
+
+↓
+
+Stopping
+
+↓
+
+Stopped
+
+↓
+
+Failed
+```
+
+State transitions SHALL be deterministic.
+
+Illegal state transitions SHALL be rejected.
+
+---
+
+# 11. Health Contract
+
+The Service Lifecycle Manager SHALL expose health information for:
+
+- individual services
+- overall platform
+- dependency status
+- readiness status
+
+Health SHALL be reported independently of implementation details.
+
+---
+
+# 12. Dependency Awareness Contract
+
+The manager SHALL maintain logical dependency relationships between registered services.
+
+Dependency information SHALL support:
+
+- startup verification
+- shutdown sequencing
+- health reporting
+- operational diagnostics
+
+Dependency information SHALL be read-only to consumers.
+
+---
+
+# 13. Lifecycle Event Contract
+
+The manager SHALL publish lifecycle events including:
+
+- service registered
+- service initialized
+- service ready
+- service degraded
+- service stopping
+- service stopped
+- service failed
+
+Event delivery SHALL be deterministic.
+
+Future event consumers SHALL use only the published interface.
+
+---
+
+# 14. Shutdown Coordination Contract
+
+During platform shutdown the manager SHALL:
+
+1. stop accepting new lifecycle registrations
+2. coordinate orderly service shutdown
+3. respect dependency ordering
+4. confirm service termination
+5. publish shutdown completion
+
+Shutdown SHALL be idempotent.
+
+---
+
+# 15. Error Contract
+
+Errors SHALL be classified consistently.
+
+| Error Type | Description |
+|------------|-------------|
+| Registration Failure | Service registration unsuccessful |
+| Duplicate Service | Identifier already registered |
+| Unknown Service | Requested service not registered |
+| Invalid State Transition | Requested lifecycle transition invalid |
+| Health Failure | Health information unavailable |
+| Lifecycle Failure | Unexpected lifecycle management failure |
+
+Implementation-specific exceptions SHALL remain encapsulated.
+
+---
+
+# 16. Logging Contract
+
+The Service Lifecycle Manager SHALL:
+
+- log service registration
+- log lifecycle transitions
+- log health changes
+- log shutdown coordination
+- log lifecycle failures
+
+Logging SHALL use the platform Logging Service exclusively.
+
+---
+
+# 17. Security Requirements
+
+The Service Lifecycle Manager SHALL:
+
+- validate lifecycle requests
+- reject unauthorized registrations
+- avoid exposing sensitive runtime information
+- fail securely
+- preserve platform integrity during lifecycle transitions
+
+---
+
+# 18. Performance Expectations
+
+The Service Lifecycle Manager SHALL:
+
+- maintain efficient service lookup
+- minimize lifecycle management overhead
+- support rapid health queries
+- avoid unnecessary synchronization
+
+Performance optimizations SHALL preserve deterministic behaviour.
+
+---
+
+# 19. Thread Safety
+
+The Service Lifecycle Manager SHALL support concurrent access.
+
+Concurrent operations SHALL:
+
+- preserve state consistency
+- prevent duplicate registrations
+- avoid deadlocks
+- maintain deterministic lifecycle transitions
+
+Consumers SHALL NOT require explicit synchronization.
+
+---
+
+# 20. Extension Contract
+
+Future platform services SHALL:
+
+- implement the standard lifecycle interface
+- register through the Service Lifecycle Manager
+- expose health information
+- support graceful shutdown
+- preserve lifecycle semantics
+
+Extensions SHALL NOT require modification of existing managed services.
+
+---
+
+# 21. Consumer Contract
+
+Consumers SHALL:
+
+- obtain lifecycle information exclusively through the Service Lifecycle Manager
+- treat lifecycle state as authoritative
+- avoid managing service state directly
+- use health information for operational decisions
+
+Lifecycle management SHALL remain centralized.
+
+---
+
+# 22. Testing Requirements
+
+Testing SHALL verify:
+
+- initialization
+- service registration
+- duplicate registration detection
+- lifecycle state transitions
+- health reporting
+- dependency awareness
+- concurrent registrations
+- graceful shutdown
+- lifecycle failure handling
+
+Mock services SHOULD be used for deterministic lifecycle testing.
+
+---
+
+# 23. AI Implementation Guidance
+
+AI implementation agents SHALL:
+
+- preserve standardized lifecycle states
+- register services through the public interface
+- avoid hidden lifecycle management
+- preserve deterministic state transitions
+- implement graceful shutdown semantics
+
+Lifecycle logic SHALL remain centralized within the Service Lifecycle Manager.
+
+---
+
+# 24. Backward Compatibility
+
+Future releases SHALL preserve:
+
+- public service interface
+- lifecycle state definitions
+- registration semantics
+- health reporting semantics
+- shutdown behaviour
+
+Breaking changes SHALL require:
+
+- architecture review
+- semantic version increment
+- approved ADR where applicable
+
+---
+
+# 25. Conformance Criteria
+
+This service contract is satisfied when:
+
+- all platform services register through the Service Lifecycle Manager
+- lifecycle states conform to this specification
+- health reporting is centralized
+- lifecycle transitions are deterministic
+- dependency awareness is maintained
+- shutdown coordination conforms to this specification
+
+---
+
+# 26. Exit Criteria
+
+This document is complete when:
+
+- the Service Lifecycle Manager public interface is fully defined
+- lifecycle behaviour is specified
+- dependency contracts are established
+- state management is documented
+- extension requirements are defined
+- implementation teams can implement the Service Lifecycle Manager without further architectural clarification
+
+---
+
+**End of Document**
