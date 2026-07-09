@@ -1,0 +1,25 @@
+---
+description: Implement IWP specs in 86-vibe-cli
+globs: architecture/iwp/**/*.md
+alwaysApply: false
+---
+
+# IWP Implementation
+
+When an IWP file is the task:
+
+1. Treat the IWP as the complete implementation prompt.
+2. Read governing ARP/AEP documents from `86-vibe-platform/architecture/`.
+3. Inspect the existing baseline in `86-vibe-cli` before adding or changing files.
+4. Implement all code and tests in **86-vibe-cli** — never in `86-vibe-platform`.
+5. Do not implement unrelated platform services named outside the IWP scope.
+6. Follow ARP-001-05 engineering coding standards.
+7. Verify with `pytest` from the `86-vibe-cli` root.
+
+## Do not implement in 86-vibe-example
+
+IWP packages target the CLI implementation repository unless the IWP explicitly names `86-vibe-example` as the implementation target.
+
+## Prompt pattern
+
+> Implement IWP-00X-YY from this document. Put all code changes in `86-vibe-cli`. Run `pytest` when done.

@@ -1,0 +1,52 @@
+---
+description: 86-vibe workspace — three-repository layout and responsibilities
+alwaysApply: true
+---
+
+# 86-vibe Workspace Layout
+
+This workspace has three roots. Each has a single primary responsibility per AEP-001-08.
+
+| Repository | Role | Write code here? |
+|------------|------|------------------|
+| **86-vibe-platform** | Architecture (ARP/AEP/IWP), standards, templates, governance | No — specs and docs only |
+| **86-vibe-cli** | Platform CLI implementation (`86vibe` command) | Yes — all platform service and CLI code |
+| **86-vibe-example** | Reference implementation and regression validation | Yes — example projects and validation only |
+
+## Dependency direction
+
+```text
+86-vibe-platform
+        ├──────────────┐
+        ▼              ▼
+86-vibe-cli     86-vibe-example
+        └──────────────┘
+              ▼
+      86-vibe-example
+```
+
+- Platform SHALL NOT depend on CLI or Example.
+- CLI MAY depend on Platform.
+- Example MAY depend on Platform and CLI.
+- Do not introduce circular dependencies.
+
+## Task routing
+
+| Task type | Read from | Implement in |
+|-----------|-----------|--------------|
+| IWP or service implementation | `86-vibe-platform/architecture/` | `86-vibe-cli/src/vibe/` |
+| Architecture or standards change | `86-vibe-platform/` | `86-vibe-platform/` only |
+| Reference example or release validation | `86-vibe-platform/architecture/` | `86-vibe-example/` |
+| Regression tests for platform releases | Platform + CLI specs | `86-vibe-example/tests/` |
+
+## IWP → CLI package mapping
+
+| Service / area | Path in 86-vibe-cli |
+|----------------|---------------------|
+| CLI commands | `src/vibe/cli/` |
+| Configuration Service | `src/vibe/configuration/` |
+| Logging Service | `src/vibe/logging/` |
+| Bootstrap | `src/vibe/bootstrap/` |
+| Version metadata | `src/vibe/version.py` |
+
+When an IWP names `Implementation Repository: 86-vibe-cli`, all code and tests go in **86-vibe-cli**, not in the platform or example repos.
