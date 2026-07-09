@@ -70,3 +70,6 @@ htmlcov/
 *.swp
 *.swo
 *~
+
+# zip files
+*.zip
