@@ -1,79 +1,126 @@
 # 13. Implementation Constraints
 
-The Health Monitoring Service SHALL be implemented strictly within the architectural boundaries defined by AP-001, AP-002, ARP-001, and ARP-002.
+The Health Monitoring Service implementation SHALL comply with the following mandatory constraints.
+
+## 13.1 Architectural Constraints
+
+Implementation SHALL:
+
+- conform exactly to the approved architecture;
+- conform exactly to all published service contracts;
+- preserve deterministic behaviour;
+- preserve dependency direction;
+- preserve lifecycle sequencing;
+- preserve service isolation;
+- preserve interface compatibility;
+- preserve implementation consistency with previous work packages.
 
 Implementation SHALL NOT:
 
-- introduce new platform services
-- modify existing service interfaces
-- alter service registration mechanisms
-- modify lifecycle sequencing
-- introduce new dependency relationships
-- bypass the Configuration Service
-- bypass the Logging Service
-- bypass the Service Registry
-- duplicate existing platform functionality
-- introduce service-specific configuration stores
-- introduce platform-specific monitoring frameworks
-- implement distributed telemetry
-- implement distributed tracing
-- implement alert routing
-- implement metrics persistence
-- implement event publishing outside approved interfaces
-- expose internal implementation details
+- redesign architecture;
+- introduce additional public interfaces;
+- introduce additional service dependencies;
+- bypass approved platform services;
+- duplicate functionality implemented by previous work packages;
+- introduce circular dependencies.
 
-The implementation SHALL remain entirely consistent with the approved architecture.
+---
+
+## 13.2 Service Constraints
+
+The Health Monitoring Service SHALL operate exclusively through approved interfaces.
+
+Health monitoring SHALL NOT directly manipulate:
+
+- repository state;
+- configuration persistence;
+- logging implementation;
+- lifecycle orchestration;
+- validation execution;
+- AI providers;
+- MCP providers.
+
+The service SHALL consume these capabilities only through their published contracts.
+
+---
+
+## 13.3 Configuration Constraints
+
+Configuration SHALL be obtained exclusively through the Configuration Service.
+
+Configuration SHALL NOT:
+
+- be hard coded;
+- bypass the configuration provider;
+- duplicate configuration logic;
+- maintain independent configuration stores.
+
+Configuration validation SHALL conform to the Validation Framework.
+
+---
+
+## 13.4 Logging Constraints
+
+All operational logging SHALL use the Logging Service.
+
+Logging SHALL include:
+
+- startup events;
+- shutdown events;
+- provider registration;
+- provider deregistration;
+- readiness evaluation;
+- liveness evaluation;
+- aggregation failures;
+- unexpected exceptions.
+
+Logging SHALL remain structured and deterministic.
+
+---
+
+## 13.5 Thread Safety Constraints
+
+The Health Monitoring Service SHALL support concurrent execution.
+
+Implementation SHALL ensure:
+
+- thread-safe provider registration;
+- thread-safe provider removal;
+- thread-safe aggregation;
+- immutable health result generation;
+- deterministic concurrent behaviour.
+
+Shared mutable state SHALL be protected using approved synchronization mechanisms.
 
 ---
 
 # 14. Service Responsibilities
 
-The Health Monitoring Service SHALL provide the platform implementation for health assessment.
+The Health Monitoring Service SHALL be responsible for:
 
-Responsibilities include:
+- maintaining the registered health provider catalogue;
+- coordinating health evaluations;
+- collecting provider health results;
+- aggregating platform health;
+- publishing readiness status;
+- publishing liveness status;
+- exposing platform health information through the approved interface.
 
-- registration of health providers
-- execution of health checks
-- execution scheduling
-- dependency evaluation
-- aggregation of health results
-- normalization of service state
-- platform health calculation
-- diagnostic collection
-- CLI support
-- configuration integration
-- lifecycle integration
-- logging integration
-
-The service SHALL remain independent of business logic.
-
-Health evaluation SHALL only assess platform operational status.
+The service SHALL remain independent of business functionality.
 
 ---
 
-# 15. Service Boundaries
+# 15. Health Provider Responsibilities
 
-The Health Monitoring Service SHALL own:
+Every registered health provider SHALL:
 
-- health provider registration
-- health execution lifecycle
-- health aggregation
-- probe execution
-- diagnostics generation
-- health result normalization
+- implement the published health provider contract;
+- return deterministic health responses;
+- avoid modifying platform state;
+- complete health evaluation within configured timeout limits;
+- provide diagnostic information defined by the architecture.
 
-The service SHALL NOT own:
-
-- application business validation
-- document parsing
-- AI provider execution
-- MCP communication
-- repository operations
-- plugin loading
-- event publication
-- platform context management
-
-Responsibilities assigned to other platform services SHALL remain unchanged.
+Providers SHALL remain independently testable.
 
 ---
 
@@ -81,223 +128,88 @@ Responsibilities assigned to other platform services SHALL remain unchanged.
 
 The Health Monitoring Service SHALL integrate with:
 
-## Configuration Service
+- Configuration Service;
+- Logging Service;
+- Service Registry;
+- Service Lifecycle Manager.
 
-Used for:
+Integration SHALL occur only through approved public interfaces.
 
-- scheduling configuration
-- timeout configuration
-- probe configuration
-- diagnostic configuration
-
-Configuration SHALL NOT be cached outside approved architectural guidance.
+Direct implementation coupling SHALL NOT be introduced.
 
 ---
 
-## Logging Service
+# 17. Build Requirements
 
-Used for:
-
-- execution logging
-- diagnostics
-- failures
-- warnings
-- startup
-- shutdown
-
-Logging SHALL follow existing structured logging conventions.
-
----
-
-## Service Registry
-
-Used for:
-
-- service discovery
-- dependency lookup
-- service registration
-- dependency validation
-
-No alternate registration mechanism shall be introduced.
-
----
-
-## Bootstrap Service
-
-Used for:
-
-- initialization
-- startup sequencing
-- shutdown sequencing
-
-Bootstrap ordering SHALL remain unchanged.
-
----
-
-## CLI Framework
-
-Used for:
-
-- health commands
-- diagnostics
-- reporting
-- JSON output
-
-The CLI SHALL consume only approved public interfaces.
-
----
-
-# 17. Quality Requirements
-
-The implementation SHALL satisfy the following quality attributes.
-
-## Reliability
-
-Health execution SHALL continue operating when individual health providers fail.
-
-Failures SHALL be isolated.
-
----
-
-## Availability
-
-Health evaluation SHALL not prevent platform startup unless required by the approved architecture.
-
----
-
-## Maintainability
-
-Health providers SHALL remain modular.
-
-Provider implementations SHALL be independently maintainable.
-
----
-
-## Testability
-
-Every component SHALL support automated testing.
-
-Health providers SHALL support mocking.
-
----
-
-## Performance
-
-Health execution SHALL avoid unnecessary allocations.
-
-Health aggregation SHALL remain deterministic.
-
-Blocking operations SHALL be minimized.
-
----
-
-## Security
-
-Sensitive information SHALL NOT appear in:
-
-- logs
-- diagnostics
-- CLI output
-- serialized health models
-
-Secrets SHALL never be exposed.
-
----
-
-# 18. Error Handling
-
-Errors SHALL be categorized consistently.
-
-Implementation SHALL distinguish between:
-
-- configuration errors
-- registration errors
-- execution errors
-- dependency failures
-- timeout failures
-- internal failures
-
-Errors SHALL be normalized before being returned to consumers.
-
-Implementation-specific exceptions SHALL NOT cross service boundaries.
-
----
-
-# 19. Concurrency Requirements
-
-Health evaluation SHALL support concurrent execution where approved by the architecture.
+The implementation SHALL compile successfully within the platform build.
 
 Implementation SHALL:
 
-- prevent race conditions
-- avoid deadlocks
-- avoid duplicate execution
-- synchronize shared state
-- preserve deterministic aggregation
-
-Thread safety SHALL be maintained throughout the implementation.
+- satisfy all static analysis requirements;
+- satisfy formatting requirements;
+- satisfy linting requirements;
+- satisfy type validation;
+- introduce no compiler warnings resulting from newly implemented functionality.
 
 ---
 
-# 20. Documentation Requirements
+# 18. Testing Requirements
 
-Cursor SHALL provide implementation documentation including:
+Testing SHALL include:
 
-- implementation overview
-- package structure
-- dependency summary
-- public interfaces
-- configuration reference
-- diagnostics reference
-- CLI reference
-- testing guidance
-- limitations
-- assumptions
-- completion report
+- unit testing;
+- component testing;
+- integration testing;
+- lifecycle testing;
+- registration testing;
+- deregistration testing;
+- readiness evaluation testing;
+- liveness evaluation testing;
+- aggregation testing;
+- concurrency testing;
+- error handling testing.
 
-Documentation SHALL reflect the implemented solution and remain consistent with the approved architecture.
-
----
-
-# 21. Completion Requirements
-
-IWP-013 SHALL be considered complete only when:
-
-- all companion specifications have been implemented
-- all automated tests pass
-- build succeeds
-- linting succeeds
-- type checking succeeds
-- documentation is complete
-- Completion Report has been produced
-- implementation conforms to AP-001
-- implementation conforms to AP-002
-- implementation conforms to ARP-001
-- implementation conforms to ARP-002
-- ADR-001 remains satisfied
-- no architectural deviations exist
+All tests SHALL be deterministic and repeatable.
 
 ---
 
-# 22. Implementation Boundary
+# 19. Traceability
 
-This document defines only the implementation governance for IWP-013.
+Every implementation element SHALL trace directly to:
 
-Detailed implementation specifications are contained within:
+- approved architecture;
+- approved service contracts;
+- approved architecture decision records;
+- this implementation specification.
 
-- IWP-013-01
-- IWP-013-02
-- IWP-013-03
-- IWP-013-04
-- IWP-013-05
-- IWP-013-06
-
-No implementation details beyond this governance document shall be inferred.
-
-Implementation SHALL rely exclusively upon the companion specifications.
+Implementation SHALL NOT introduce functionality without architectural traceability.
 
 ---
 
-# End of Part 1B
+# 20. Completion Criteria
+
+This implementation work package SHALL be considered complete when:
+
+- every companion implementation specification has been implemented;
+- all acceptance criteria have been satisfied;
+- all automated tests pass;
+- architectural compliance has been verified;
+- interface compliance has been verified;
+- dependency compliance has been verified;
+- deterministic behaviour has been demonstrated.
+
+No implementation activity outside the approved scope is permitted.
+
+---
+
+# 21. Part Completion
+
+This concludes **IWP-013-00 — Master Implementation Specification — Part 1B**.
+
+The next document in the approved implementation sequence is:
+
+**IWP-013-01 — Health Monitoring Service Implementation Specification — Part 1A**
+
+---
 
 # END OF FILE

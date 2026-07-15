@@ -13,24 +13,22 @@
 | Repository | 86-vibe-cli |
 | Governing Architecture | AP-001, AP-002, ARP-001, ARP-002 |
 | Sequencing Authority | ADR-001 |
-| Depends On | IWP-001 through IWP-012 |
+| Depends On | IWP-001, IWP-002, IWP-003, IWP-004, IWP-005, IWP-006, IWP-007, IWP-008, IWP-009, IWP-010, IWP-011, IWP-012 |
 | Implementation Agent | Cursor |
 
 ---
 
 # 1. Purpose
 
-This document is the **master implementation specification** for **IWP-013 – Health Monitoring Service**.
+This document is the master implementation specification for **IWP-013 – Health Monitoring Service**.
 
-The Health Monitoring Service is one implementation work package.
+The Health Monitoring Service implementation consists of multiple implementation specifications.
 
-Due to the size and complexity of the implementation, the implementation specification has been divided into multiple companion documents.
+This document governs the implementation package.
 
-All companion documents together constitute the complete implementation specification.
+Cursor SHALL treat every companion document as part of a single implementation work package.
 
-Cursor SHALL treat all companion documents as a single implementation package.
-
-No companion document may be ignored.
+No companion document may be omitted.
 
 ---
 
@@ -38,215 +36,105 @@ No companion document may be ignored.
 
 Implementation SHALL conform to:
 
-- AP-001
-- AP-002
-- ARP-001
-- ARP-002
-- ADR-001
+- AP-001 – Product Inception & Foundation
+- AP-002 – Core Platform Implementation
+- ARP-001 – Architecture Readiness Package
+- ARP-002 – Service Interface Contracts
+- ARP-002-12 – Health Monitoring Service Interface Contract
+- ADR-001 – Reorder IWP-008 and IWP-009
 
-Architecture is immutable.
+Architecture SHALL NOT be modified.
 
 Implementation SHALL NOT redesign architecture.
 
 Implementation SHALL NOT reinterpret architecture.
 
-Implementation SHALL NOT introduce new services.
+Implementation SHALL conform to every approved service contract.
 
-Implementation SHALL NOT change dependency relationships.
-
-Implementation SHALL conform to all approved service contracts.
+Implementation SHALL NOT introduce architectural changes.
 
 ---
 
 # 3. Implementation Baseline
 
-The following implementation work packages are complete and shall be treated as immutable:
+The following implementation work packages SHALL be considered complete.
 
-- IWP-001 Repository Foundation
-- IWP-002 Configuration Service
-- IWP-003 Logging Service
-- IWP-004 Bootstrap Service
-- IWP-005 Service Registry
-- IWP-006 Service Lifecycle Manager
-- IWP-007 CLI Framework
-- IWP-008 Validation Framework
-- IWP-009 Repository Service
-- IWP-010 Document Parser Framework
-- IWP-011 AI Provider Layer
-- IWP-012 MCP Client Service
+- IWP-001 – Repository Foundation
+- IWP-002 – Configuration Service
+- IWP-003 – Logging Service
+- IWP-004 – Bootstrap Service
+- IWP-005 – Service Registry
+- IWP-006 – Service Lifecycle Manager
+- IWP-007 – CLI Framework
+- IWP-008 – Validation Framework
+- IWP-009 – Repository Service
+- IWP-010 – Document Parser Framework
+- IWP-011 – AI Provider Layer
+- IWP-012 – MCP Client Service
 
-The Health Monitoring Service SHALL consume these services only through approved public interfaces and only where permitted by the governing architecture.
-
-No previous work package may be modified except to correct a defect that directly prevents implementation of IWP-013.
-
-Any such correction SHALL be documented in the Completion Report.
+Previous implementation work packages SHALL NOT be modified except for approved defect corrections.
 
 ---
 
 # 4. Scope
 
-IWP-013 implements the platform Health Monitoring Service.
+Health Monitoring Service SHALL implement:
 
-The Health Monitoring Service provides:
+- Health Monitoring Service public interface
+- Health provider registration
+- Health provider deregistration
+- Platform health aggregation
+- Platform readiness evaluation
+- Platform liveness evaluation
+- Platform status reporting
+- Health result generation
+- Health provider lifecycle integration
+- Deterministic health evaluation
+- Health aggregation based upon registered mandatory and optional services
+- Logging integration
+- Configuration integration
+- Service Registry integration
+- Service Lifecycle Manager integration
+- Thread-safe monitoring operations
 
-- Health Monitoring Service
-- platform health orchestration
-- service health registration
-- health check execution
-- liveness evaluation
-- readiness evaluation
-- startup evaluation
-- dependency health aggregation
-- platform health aggregation
-- service availability reporting
-- health state normalization
-- health result collection
-- health probe execution
-- scheduled health monitoring
-- on-demand health evaluation
-- health diagnostics
-- health configuration integration
-- health logging integration
-- health CLI integration
-- health request and response models
-
-The service SHALL implement only the capabilities defined by the approved architecture.
+Implementation SHALL remain within the approved architecture.
 
 ---
 
 # 5. Out of Scope
 
-IWP-013 SHALL NOT implement:
+The following capabilities are outside the scope of this work package.
 
-- infrastructure monitoring platforms
-- operating system monitoring
-- container orchestration
-- external telemetry collection
-- metrics aggregation beyond approved architecture
-- distributed tracing
-- performance analytics
-- alert notification platforms
-- automatic remediation
-- event bus functionality
-- plugin lifecycle management
-- platform context management
-- end-to-end platform integration
-- AI model communication
-- repository workflow execution
-- business-specific monitoring logic
+- Service initialization
+- Service restart capabilities
+- Service orchestration
+- Business logic
+- Validation execution
+- Repository management
+- AI provider functionality
+- MCP functionality
+- Prompt management
+- Event bus implementation
+- Plugin management
+- Platform context management
+- Modification of service state outside the published monitoring contract
 
-The Health Monitoring Service SHALL not introduce monitoring capabilities beyond those explicitly defined by the governing architecture.
+Implementation SHALL NOT introduce additional functionality.
 
 ---
 
 # 6. Companion Specifications
 
-The following implementation specifications together define IWP-013.
+The following implementation specifications constitute the complete implementation package.
 
-## IWP-013-00
+- IWP-013-00 — Master Implementation Specification
+- IWP-013-01 — Health Monitoring Service Implementation Specification
+- IWP-013-02 — Health Monitoring Engine Implementation Specification
+- IWP-013-03 — Health Monitoring Models Implementation Specification
+- IWP-013-04 — Health Monitoring CLI Implementation Specification
+- IWP-013-05 — Health Monitoring Testing Implementation Specification
 
-Master Implementation Specification
-
-(this document)
-
----
-
-## IWP-013-01
-
-Health Monitoring Service
-
-Defines:
-
-- Health Monitoring Service
-- public API
-- lifecycle
-- dependency injection
-- service registration
-- initialization
-- shutdown
-- consumer contract
-
----
-
-## IWP-013-02
-
-Health Monitoring Engine
-
-Defines:
-
-- health execution engine
-- health orchestration
-- scheduling
-- aggregation pipeline
-- dependency evaluation
-- execution pipeline
-
----
-
-## IWP-013-03
-
-Health Checks & Probes
-
-Defines:
-
-- health check interfaces
-- liveness probes
-- readiness probes
-- startup probes
-- dependency probes
-- probe registration
-- probe diagnostics
-
----
-
-## IWP-013-04
-
-Health Models
-
-Defines:
-
-- health status model
-- health result model
-- probe model
-- dependency model
-- aggregate health model
-- diagnostics model
-- serialization model
-
----
-
-## IWP-013-05
-
-CLI Integration
-
-Defines:
-
-- health commands
-- service status
-- probe execution
-- diagnostics
-- CLI output
-- JSON output
-- reporting
-- exit codes
-
----
-
-## IWP-013-06
-
-Testing & Acceptance
-
-Defines:
-
-- package layout
-- mock health providers
-- unit testing
-- integration testing
-- concurrency testing
-- regression testing
-- acceptance criteria
-- completion report
-- definition of done
+Every companion document SHALL be implemented.
 
 ---
 
@@ -254,50 +142,38 @@ Defines:
 
 Before implementation Cursor SHALL:
 
-1. Review every implementation specification.
+- Read AP-001
+- Read AP-002
+- Read ARP-001
+- Read ARP-002
+- Read ARP-002-12 in full
+- Read applicable ADR documents
+- Treat all previous implementation work packages as immutable dependencies
+- Preserve all published service interfaces
+- Preserve lifecycle sequencing
+- Preserve dependency boundaries
+- Preserve deterministic behaviour
+- Implement only behaviour defined by the approved architecture
 
-2. Confirm the current implementation baseline.
-
-3. Review all governing architecture documents.
-
-4. Review ADR-001.
-
-5. Review the approved Health Monitoring architecture specifications.
-
-6. Review the approved Health Monitoring Service interface contract.
-
-7. Identify existing Configuration Service APIs.
-
-8. Identify existing Logging Service APIs.
-
-9. Identify existing Service Registry APIs.
-
-10. Identify Bootstrap and lifecycle integration patterns.
-
-11. Identify CLI integration patterns established by IWP-007.
-
-12. Identify service registration patterns established by previous work packages.
-
-13. Implement only the functionality described in the companion specifications.
+Cursor SHALL NOT infer functionality not defined by the approved architecture.
 
 ---
 
 # 8. Implementation Sequence
 
-Cursor SHALL implement the companion specifications as one work package.
+Implementation SHALL follow the approved sequence.
 
-The recommended implementation order is:
+1. Master implementation specification
+2. Health Monitoring Service implementation
+3. Health Monitoring Engine implementation
+4. Health Monitoring Models implementation
+5. Health Monitoring CLI implementation
+6. Health Monitoring Testing implementation
+7. Build verification
+8. Integration verification
+9. Acceptance validation
 
-1. Health Monitoring Service
-2. Health Models
-3. Health Monitoring Engine
-4. Health Checks & Probes
-5. CLI Integration
-6. Tests
-7. Documentation
-8. Completion Report
-
-This implementation order does not alter the architecture.
+Implementation order SHALL NOT modify the approved architecture.
 
 ---
 
@@ -305,24 +181,20 @@ This implementation order does not alter the architecture.
 
 Implementation SHALL:
 
-- Follow all approved platform coding standards.
-- Use existing dependency injection patterns.
-- Use the approved Service Registry.
-- Use the approved Logging Service.
-- Use the approved Configuration Service.
-- Maintain strict TypeScript typing.
-- Avoid circular dependencies.
-- Follow existing repository structure.
-- Produce deterministic behaviour.
-- Preserve health evaluation isolation.
-- Normalize all externally exposed health responses.
-- Normalize all externally exposed health errors.
-- Encapsulate probe-specific behaviour.
-- Support safe concurrent execution.
-- Redact sensitive values from diagnostics.
-- Cleanly release all scheduled resources.
+- conform to the approved architecture
+- implement only published public interfaces
+- preserve deterministic behaviour
+- use dependency injection where architecturally defined
+- integrate exclusively through approved service interfaces
+- maintain thread safety
+- use structured logging through the Logging Service
+- obtain configuration exclusively through the Configuration Service
+- preserve lifecycle compliance
+- avoid circular dependencies
+- provide comprehensive automated testing
+- maintain implementation consistency with previous work packages
 
-Implementation SHALL NOT introduce undocumented architectural abstractions.
+Implementation SHALL remain consistent with previous implementation work packages.
 
 ---
 
@@ -332,80 +204,60 @@ The Health Monitoring Service SHALL depend upon:
 
 - Configuration Service
 - Logging Service
+- Service Lifecycle Manager
 - Service Registry
-- Bootstrap Service
 
 The Health Monitoring Service SHALL NOT depend upon:
 
-- Event Bus Service
-- Plugin Manager Service
-- Platform Context Service
+- Repository Service
+- Prompt Management Service
+- AI Provider Service
+- MCP Client Service
+- Validation Service
 
-CLI integration SHALL consume the Health Monitoring Service public interface without creating a reverse dependency from the service to the CLI Framework.
-
-The Health Monitoring Service SHALL expose only the interfaces defined by the approved architecture.
-
-No reverse dependencies shall be introduced.
+No circular dependencies may be introduced.
 
 ---
 
 # 11. Deliverables
 
-Completion of IWP-013 SHALL produce:
+Implementation SHALL produce:
 
-- Health Monitoring Service
-- Health Monitoring Engine
-- Health Check Registry
-- Health Check Execution Pipeline
-- Liveness Probes
-- Readiness Probes
-- Startup Probes
-- Dependency Health Evaluation
-- Platform Health Aggregation
-- Health Models
-- Health Diagnostics
-- CLI Integration
-- Mock Health Providers
-- Unit Tests
-- Integration Tests
-- Documentation
-- Completion Report
+- Health Monitoring Service implementation
+- Health provider registration implementation
+- Health aggregation engine
+- Readiness evaluation implementation
+- Liveness evaluation implementation
+- Health models
+- CLI integration
+- Automated unit tests
+- Automated integration tests
+- Implementation documentation consistent with the approved templates
 
 ---
 
 # 12. Acceptance Criteria
 
-The implementation SHALL be considered complete only when:
+Implementation SHALL satisfy:
 
-- All companion specifications have been fully implemented.
-- All required interfaces conform to the approved architecture.
-- Existing platform services remain backward compatible.
-- Health configuration integration is complete.
-- Health registrations are deterministic.
-- Duplicate registrations are rejected.
-- Health execution completes deterministically.
-- Liveness evaluation operates as specified.
-- Readiness evaluation operates as specified.
-- Startup evaluation operates as specified.
-- Dependency aggregation operates as specified.
-- Health results are normalized.
-- Health errors are normalized.
-- Probe implementation details remain encapsulated.
-- Concurrent execution remains thread-safe.
-- Sensitive values are not exposed through logs or diagnostics.
-- All automated tests pass.
-- Health execution tests pass.
-- Probe tests pass.
-- Aggregation tests pass.
-- Error normalization tests pass.
-- Concurrency tests pass.
-- Linting passes without error.
-- Type checking passes without error.
-- Build succeeds.
-- Documentation is complete.
-- Acceptance criteria are satisfied.
-- Cursor has produced the required Completion Report.
+- Health Monitoring Service interface implemented exactly as defined by ARP-002-12
+- Health provider registration implemented
+- Deterministic health aggregation implemented
+- Readiness reporting implemented
+- Liveness reporting implemented
+- Platform status reporting implemented
+- Dependency contracts satisfied
+- Lifecycle behaviour satisfied
+- Thread safety demonstrated
+- Logging requirements satisfied
+- Configuration requirements satisfied
+- Automated tests passing
+- No architectural deviations introduced
+
+Acceptance SHALL require successful completion of every companion specification.
 
 ---
 
 # End of Part 1A
+
+---
