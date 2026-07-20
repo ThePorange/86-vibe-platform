@@ -1,1169 +1,643 @@
-IWP-002-01 – Configuration Service Implementation Specification
-
-Document Control
-
-Item	Value
-Document ID	IWP-002-01
-Document Name	Configuration Service Implementation Specification
-Implementation Package	IWP-002 – Configuration Service
-Platform	86-vibe
-Implementation Repository	86-vibe-cli
-Architecture Repository	86-vibe-platform
-Status	Implementation Ready
-Owner	Chief Systems Architect
-Implementation Agent	Cursor
-Depends On	IWP-001 – Repository Foundation
-Supersedes	None
-
-⸻
-
-1. Purpose
-
-This document defines the complete implementation instructions for IWP-002 – Configuration Service.
-
-The Configuration Service is the authoritative runtime mechanism through which all 86-vibe platform components obtain configuration.
-
-This implementation package shall produce a working, independently testable Configuration Service conforming to the approved architecture baseline.
-
-Cursor shall treat this document as the complete implementation prompt.
-
-Nothing required for implementation shall exist outside this Markdown document except the approved architecture repository and the existing 86-vibe-cli implementation baseline.
-
-⸻
-
-2. Implementation Objective
-
-Implement the Configuration Service in the 86-vibe-cli repository.
-
-The implementation shall provide deterministic loading, merging, validation, retrieval, export, reload, lifecycle participation, and shutdown behavior for platform configuration.
-
-The implementation shall satisfy the public service contract defined by:
-
-* ARP-002-02 – Configuration Service Interface Contract
-* AEP-002-05 – Configuration Management Specification
-* AEP-002-16 – Platform Bootstrap Sequence Specification
-* AEP-002-17 – Service Lifecycle & Dependency Management Specification
-* AEP-002-18 – Platform Reference Implementation Specification
-* ARP-002-16 – Platform Service Contract Compliance Matrix
-
-This package shall not implement unrelated platform services.
-
-⸻
-
-3. Authoritative Architecture Inputs
-
-Cursor shall use the following approved architecture documents as governing references.
-
-3.1 Primary Governing Documents
-
-Document	Relevance
-AEP-002-05 – Configuration Management Specification	Defines configuration hierarchy, precedence, file format, validation, runtime access, defaults, invalid handling, and testing requirements
-ARP-002-02 – Configuration Service Interface Contract	Defines public service identity, responsibilities, lifecycle, data contract, validation contract, error contract, thread safety, extension contract, and conformance criteria
-ARP-002-16 – Platform Service Contract Compliance Matrix	Defines mandatory lifecycle, configuration, logging, error handling, health, testing, and documentation requirements
-ARP-001-05 – Engineering Coding Standards	Defines mandatory Python engineering standards
-ARP-001-03 – Package Dependency Matrix	Defines dependency direction and prohibits circular dependencies
-
-3.2 Supporting Governing Documents
-
-Document	Relevance
-AEP-002-02 – Repository Directory Structure	Defines repository and package layout
-AEP-002-03 – Python Package Architecture	Defines Python package responsibilities
-AEP-002-12 – Testing Strategy Specification	Defines test expectations
-AEP-002-13 – Build & Packaging Specification	Defines package/build expectations
-AEP-002-15 – Local Development Workflow Specification	Defines development workflow expectations
-AEP-002-16 – Platform Bootstrap Sequence Specification	Defines bootstrap ordering
-AEP-002-17 – Service Lifecycle & Dependency Management Specification	Defines lifecycle and dependency behavior
-
-⸻
-
-4. Implementation Baseline
-
-IWP-001 – Repository Foundation has already been implemented, approved, merged, and is now part of the immutable implementation baseline.
-
-Cursor shall:
-
-1. Inspect the existing 86-vibe-cli repository.
-2. Preserve all structure, tooling, conventions, and tests established by IWP-001.
-3. Reuse existing package scaffolding, exception patterns, typing conventions, test layout, and project configuration.
-4. Avoid changing IWP-001 behavior unless required to correct a defect directly blocking IWP-002.
-5. Treat any such defect as an implementation issue and document it in the completion report.
-
-⸻
-
-5. Strict Scope
-
-This work package implements only:
-
-IWP-002 – Configuration Service
-
-The following services are explicitly out of scope:
-
-* IWP-003 – Logging Service
-* IWP-004 – Bootstrap Service
-* IWP-005 – Service Registry
-* IWP-006 – Service Lifecycle Manager
-* IWP-007 – CLI Framework
-* IWP-008 – Validation Framework
-* IWP-009 – Repository Service
-* IWP-010 – Prompt Management Service
-* IWP-011 – AI Provider Layer
-* IWP-012 – MCP Client Service
-* IWP-013 – Health Monitoring Service
-* IWP-014 – Event Bus Service
-* IWP-015 – Plugin Manager Service
-* IWP-016 – Platform Context Service
-* IWP-017 – End-to-End Platform Integration
-
-Cursor shall not implement placeholder production versions of these services.
-
-Minimal test doubles, local stubs, or interfaces may be used only when required by tests and only if they do not introduce architectural behavior.
-
-⸻
-
-6. Architectural Non-Negotiables
-
-Cursor shall comply with the following rules.
-
-6.1 No Architecture Redesign
-
-Do not redesign architecture.
-
-Do not reinterpret architecture.
-
-Do not introduce new services.
-
-Do not change approved package relationships.
-
-Do not change approved public interfaces.
-
-Do not add alternate configuration mechanisms.
-
-Do not change configuration precedence.
-
-6.2 Stop Conditions
-
-Cursor shall stop and report an ambiguity instead of inventing a solution if any of the following are discovered:
-
-1. The approved architecture conflicts with existing IWP-001 code.
-2. The package location is ambiguous after inspecting the repository.
-3. The public Configuration Service contract cannot be implemented without changing another service contract.
-4. Required behavior depends on a future IWP service that has not yet been implemented.
-5. A new dependency appears necessary but is not already approved.
-6. The YAML parsing dependency is absent and cannot be added without violating existing project dependency policy.
-7. The service cannot satisfy thread-safety requirements using the existing baseline.
-
-Cursor shall not proceed by assumption in those cases.
-
-⸻
-
-7. Service Identity
-
-The Configuration Service shall conform to the identity defined in ARP-002-02.
-
-Property	Required Value
-Service Name	Configuration Service
-Package	vibe.configuration
-Primary Class	ConfigurationService
-Lifetime	Singleton
-Thread Safety	Required
-Public	Yes
-
-If IWP-001 established the package as vibe.config in accordance with AEP-002-02 and AEP-002-03, Cursor shall preserve the existing repository package structure and expose compatibility through the approved public package path where required.
-
-The architecture documents contain both package references:
-
-* repository/package structure includes src/vibe/config/
-* ARP-002-02 identifies the public service package as vibe.configuration
-
-Cursor shall resolve this without redesign by using the existing IWP-001 baseline as primary implementation layout and, if needed, providing a thin compatibility module that exposes the public ConfigurationService without duplicating logic.
-
-Do not create two independent configuration implementations.
-
-⸻
-
-8. Required Configuration Behavior
-
-The Configuration Service shall provide centralized, deterministic runtime configuration.
-
-It shall be responsible for:
-
-* loading configuration
-* discovering supported configuration sources
-* parsing project configuration
-* applying supported environment variable overrides
-* applying CLI/runtime overrides
-* resolving precedence
-* validating required values and supported types
-* freezing effective runtime configuration
-* exposing typed configuration values
-* supporting key existence checks
-* exporting effective configuration as structured data
-* supporting reload behavior where safe
-* shutting down cleanly
-
-The service shall not:
-
-* perform business logic
-* initialize unrelated services
-* communicate with AI providers
-* communicate with MCP servers
-* create repositories
-* perform CLI command routing
-* implement the future Validation Framework
-* read secrets from committed files
-* log secrets
-* mutate configuration after initialization except through documented reload behavior
-
-⸻
-
-9. Configuration Source Model
-
-The implementation shall support the architecture-defined source hierarchy.
-
-Configuration source precedence from highest to lowest is:
-
-CLI command arguments / runtime overrides
-Environment variables
-Project configuration
-Built-in platform defaults
-
-Loading sequence from lowest to highest is:
-
-Load platform defaults
-Load project configuration
-Load environment variables
-Apply CLI/runtime overrides
-Validate configuration
-Freeze runtime configuration
-
-No additional configuration source precedence shall be introduced.
-
-The service shall not support user-level config, global config, remote config, database config, cloud config, or secrets-manager-backed config in this work package unless already present in IWP-001 and explicitly required by the approved architecture.
-
-⸻
-
-10. Project Configuration Location
-
-The project configuration file shall be:
-
-.86vibe/config.yaml
-
-The associated project configuration directory layout defined by architecture is:
-
-.86vibe/
-├── config.yaml
-├── cache/
-├── logs/
-├── state/
-└── templates/
-
-IWP-002 shall implement reading and validating .86vibe/config.yaml.
-
-IWP-002 shall not implement full project initialization. Directory creation belongs to bootstrap behavior unless IWP-001 already provided foundational utilities.
-
-For this package:
-
-* missing optional project config may be handled according to the service initialization mode
-* missing required project config shall fail deterministically
-* tests shall cover both optional and required project config behavior
-* the service shall not silently create a full .86vibe project structure unless architecture baseline code already does so
-
-⸻
-
-11. Configuration File Format
-
-The project configuration format shall be YAML.
-
-Cursor shall not implement TOML or JSON configuration unless already approved elsewhere in the architecture baseline.
-
-Example architecture-defined configuration:
-
-platform:
-  name: 86-vibe
-repository:
-  type: platform
-  authoritative: true
-ai:
-  provider: openrouter
-  default_model: anthropic/claude-opus-4
-mcp:
-  enabled: true
-logging:
-  level: INFO
-governance:
-  require_human_approval: true
-  architecture_lock: true
-
-The implementation shall parse YAML deterministically.
-
-If the repository already includes a YAML dependency from IWP-001, use it.
-
-If no YAML dependency exists, Cursor shall inspect pyproject.toml.
-
-* If adding PyYAML is consistent with existing project dependency policy, add it in the minimal supported way.
-* If adding dependencies is not permitted by the existing baseline, stop and report the ambiguity.
-* Do not implement an ad hoc YAML parser.
-
-⸻
-
-12. Configuration Domains
-
-The implementation shall support the architecture-defined configuration domains.
-
-Domain	Purpose
-platform	General platform metadata
-repository	Repository-specific metadata and behavior
-ai	AI provider configuration and model selection
-mcp	Model Context Protocol configuration
-logging	Logging levels and output behavior
-governance	Architecture governance controls
-experimental	Optional features under development
-
-The implementation shall allow unknown future sections unless explicitly configured to reject them.
-
-Unknown sections shall not break existing consumers.
-
-Known sections shall be validated according to the schema implemented in this package.
+# IWP-002-01 — Configuration Service Implementation Specification
 
 ---
 
-## 13. Configuration Schema
+# Document Control
 
-The Configuration Service shall expose strongly typed configuration objects internally while providing convenient read access to consumers.
+| Item | Value |
+|------|-------|
+| Document ID | IWP-002-01 |
+| Document Name | Configuration Service Implementation Specification |
+| Work Package | IWP-002 – Configuration Service |
+| Status | Implementation Ready |
+| Repository | 86-vibe-cli |
+| Governing Architecture | AP-001, AP-002, ARP-001, ARP-002, ADR-001 |
+| Parent Document | None — single-document work package |
+| Implementation Agent | Cursor |
 
-The implementation shall separate:
+---
 
-- raw configuration data
-- parsed configuration
-- validated configuration
-- immutable runtime configuration
+# 1. Purpose
 
-Recommended internal flow:
+This document defines the implementation specification for the **Configuration Service**.
+
+The service SHALL implement the approved service contract defined by AEP-002-05 and ARP-002-02.
+
+Implementation SHALL remain fully compliant with the approved architecture.
+
+The implementation SHALL use only approved platform services and interfaces.
+
+---
+
+# 2. Responsibilities
+
+The Configuration Service SHALL be responsible for:
+
+- discovering supported configuration sources;
+- loading built-in defaults and project configuration;
+- applying documented environment-variable and CLI/runtime overrides;
+- resolving approved precedence;
+- validating configuration before dependent services initialize;
+- exposing typed, read-only configuration values;
+- testing for configuration existence;
+- exporting effective configuration as structured data;
+- reloading configuration where supported; and
+- reporting configuration failures consistently.
+
+Responsibilities SHALL remain limited to those defined by AEP-002-05 and ARP-002-02.
+
+---
+
+# 3. Service Scope
+
+The implementation SHALL provide:
+
+- deterministic configuration loading;
+- YAML project configuration at `.86vibe/config.yaml`;
+- the precedence order CLI parameters, environment variables, project configuration, and built-in defaults;
+- schema, required-field, type, enumeration, file, and directory validation where applicable;
+- immutable runtime configuration following validation;
+- thread-safe configuration access;
+- atomic reload where reload is supported;
+- configuration-specific error classification; and
+- automated verification of the approved behavior.
+
+The implementation SHALL NOT introduce additional configuration sources, precedence rules, services, public APIs, dependencies, or configuration behavior.
+
+The implementation SHALL NOT implement unrelated work packages.
+
+---
+
+# 4. Service Lifecycle
+
+The Configuration Service SHALL participate in the standard platform lifecycle.
+
+Lifecycle responsibilities SHALL include:
+
+1. Construct the service.
+2. Discover approved configuration sources.
+3. Load configuration.
+4. Resolve precedence.
+5. Validate configuration.
+6. Freeze runtime configuration.
+7. Publish service availability through the approved lifecycle and registration mechanisms when those mechanisms are present in the implementation baseline.
+8. Reload configuration atomically where supported.
+9. Release allocated resources during shutdown.
+
+Initialization and shutdown SHALL be deterministic and idempotent where applicable.
+
+Lifecycle sequencing SHALL remain consistent with AEP-002-16, AEP-002-17, ARP-001-03, and ARP-002-02.
+
+The Configuration Service SHALL remain the first runtime service initialized after bootstrap and SHALL NOT require another platform service during initialization.
+
+---
+
+# 5. Public Interface
+
+The service SHALL expose the following approved logical interface through `vibe.configuration.ConfigurationService`:
 
 ```text
-YAML
-    │
-    ▼
-Dictionary
-    │
-    ▼
-Schema Validation
-    │
-    ▼
-Typed Configuration Models
-    │
-    ▼
-Immutable Effective Configuration
+initialize()
+load()
+reload()
+get(key)
+contains(key)
+validate()
+export()
+shutdown()
 ```
 
-Consumers shall never receive mutable internal configuration state.
+The implementation language MAY refine signatures and return types provided equivalent behavior is preserved.
+
+Only architecture-approved interface methods SHALL be implemented.
+
+No undocumented public methods SHALL be introduced.
+
+Public interfaces SHALL include complete type annotations and documentation consistent with ARP-001-05.
 
 ---
 
-## 14. Public Service Interface
+# 6. Dependency Injection
 
-The implementation shall conform to the interface defined by **ARP-002-02**.
+The Configuration Service has no mandatory platform-service dependencies.
 
-The public service shall expose functionality equivalent to:
+No platform services SHALL be injected during Configuration Service initialization.
 
-```python
-class ConfigurationService:
+Where a later lifecycle, registry, logging, or health integration is attached after Configuration Service initialization, the integration SHALL use only the approved public interface and approved dependency-management mechanism.
 
-    def initialize(...) -> None:
-        ...
+Manual construction of other platform services SHALL NOT occur.
 
-    def shutdown(...) -> None:
-        ...
-
-    def reload(...) -> None:
-        ...
-
-    def get(self, key: str, default=None):
-        ...
-
-    def exists(self, key: str) -> bool:
-        ...
-
-    def get_section(self, section: str):
-        ...
-
-    def export(self):
-        ...
-
-    @property
-    def configuration(self):
-        ...
-```
-
-Method names may differ only where required by the approved architecture or the IWP-001 implementation baseline.
-
-Public APIs shall include:
-
-- complete type hints
-- docstrings
-- deterministic behavior
-- documented exceptions
+The absence of mandatory injected dependencies SHALL be represented explicitly in implementation and tests.
 
 ---
 
-## 15. Configuration Access
+# 7. Configuration
 
-The service shall support hierarchical access.
+The Configuration Service SHALL manage the following approved configuration sources:
 
-Examples:
+1. Built-in platform defaults.
+2. Project configuration from `.86vibe/config.yaml`.
+3. Documented environment variables.
+4. CLI parameters or runtime overrides supplied through the approved initialization interface.
 
-```python
-config.get("platform.name")
+Configuration SHALL follow this precedence from highest to lowest:
 
-config.get("logging.level")
+1. CLI parameters or runtime overrides.
+2. Environment variables.
+3. Project configuration.
+4. Built-in platform defaults.
 
-config.get("repository.type")
-```
+Only environment variables documented by AEP-002-05 or another approved architecture document SHALL be supported.
 
-Nested lookups shall not require callers to understand the underlying YAML structure.
+Supported platform examples include:
 
-Missing optional values shall return defaults where defined.
+- `VIBE_AI_PROVIDER`;
+- `VIBE_AI_MODEL`;
+- `VIBE_LOG_LEVEL`; and
+- `VIBE_MCP_ENABLED`.
 
-Missing required values shall raise a ConfigurationValidationError.
+Provider credentials SHALL retain their provider-defined environment-variable names.
+
+No general underscore-to-dot mapping rule SHALL be introduced unless approved by architecture.
+
+Default values SHALL conform to AEP-002-05 §16 and SHALL be documented and deterministic.
 
 ---
 
-## 16. Environment Variable Overrides
+# 8. Logging
 
-The implementation shall support environment variable overrides.
+The implementation SHALL satisfy the Configuration Service logging contract defined by AEP-002-05 §18 and ARP-002-02 §15.
 
-The approved prefix is:
+The implementation SHALL record:
+
+- initialization;
+- configuration source discovery;
+- configuration sources used;
+- validation results and warnings;
+- applied overrides;
+- reload operations; and
+- configuration errors.
+
+Logging SHALL use the approved platform logging integration when available through the implementation baseline.
+
+The Configuration Service SHALL NOT acquire a mandatory initialization dependency on the Logging Service.
+
+If the implementation baseline cannot satisfy both the required logging behavior and the approved dependency order, implementation SHALL stop and report the conflict rather than introduce an alternate logging framework.
+
+Sensitive information SHALL NOT be written to logs, and secret values SHALL always be masked.
+
+---
+
+# 9. Service Registration
+
+The Configuration Service SHALL publish availability at the end of successful initialization as required by ARP-002-02.
+
+When the approved Service Registry is present in the implementation baseline, registration SHALL include:
+
+- the canonical service identity `Configuration Service`;
+- the public package `vibe.configuration`;
+- the primary class `ConfigurationService`;
+- singleton lifetime; and
+- current lifecycle availability.
+
+The Configuration Service SHALL NOT depend on the Service Registry during its own initialization.
+
+Registration integration SHALL occur only through the approved lifecycle and registry interfaces.
+
+Duplicate registrations SHALL be rejected by the approved Service Registry contract.
+
+---
+
+# 10. Error Handling
+
+The service SHALL normalize externally visible configuration failures using the categories defined by ARP-002-02:
+
+- Missing Configuration;
+- Invalid Type;
+- Invalid Format;
+- Validation Failure; and
+- Source Failure.
+
+Errors SHALL remain deterministic and SHALL provide sufficient information to identify the failing configuration item without exposing sensitive values.
+
+Implementation-specific exceptions SHALL NOT cross service boundaries unless they constitute the documented public error contract.
+
+Invalid configuration SHALL prevent dependent command execution.
+
+---
+
+# 11. Thread Safety
+
+The implementation SHALL support concurrent configuration access.
+
+Concurrency requirements SHALL include:
+
+- safe concurrent reads;
+- atomic initialization;
+- atomic replacement during reload;
+- immutable active runtime configuration;
+- deterministic behavior;
+- absence of race conditions; and
+- absence of deadlocks.
+
+Concurrent readers SHALL observe an identical complete configuration snapshot and SHALL NOT require consumer-side synchronization.
+
+---
+
+# 12. Resource Management
+
+The service SHALL correctly manage all resources allocated for configuration loading and synchronization.
+
+Managed resources SHALL include:
+
+- opened configuration files;
+- temporary parsed and validation state; and
+- synchronization primitives used by the service.
+
+Resources SHALL be released during shutdown.
+
+Resource cleanup SHALL be deterministic and idempotent.
+
+The service SHALL NOT create the full `.86vibe` directory structure; that responsibility remains with approved CLI and bootstrap behavior.
+
+---
+
+# 13. Security Requirements
+
+The implementation SHALL:
+
+- keep secrets outside `config.yaml` and source control;
+- accept credentials only from approved environment variables or approved secure operating-system credential stores;
+- redact secrets from logs, errors, diagnostics, and diagnostic exports;
+- validate external configuration input;
+- reject malformed configuration; and
+- fail securely.
+
+Secrets SHALL never be exposed.
+
+The service SHALL NOT write configuration without an explicit architecture-approved request.
+
+---
+
+# 14. Performance Requirements
+
+The implementation SHALL optimize configuration lookup for frequent read access.
+
+Configuration SHALL normally be loaded once during bootstrap.
+
+Repeated parsing of configuration sources SHOULD be avoided.
+
+Implementation SHALL minimize unnecessary allocations while preserving readability and correctness.
+
+Blocking operations SHALL be limited to operations required to load or reload approved local configuration sources.
+
+No performance target not defined by the approved architecture SHALL be introduced.
+
+---
+
+# 15. Internal Components
+
+The service SHALL consist of focused internal components corresponding to the following responsibilities:
+
+- service lifecycle and public-interface orchestration;
+- approved-source discovery and loading;
+- deterministic precedence resolution;
+- schema and value validation;
+- documented environment-variable processing;
+- immutable typed configuration models; and
+- configuration error definitions.
+
+Each component SHALL have a single clearly defined responsibility.
+
+Component boundaries SHALL remain consistent with the approved architecture and the IWP-001 implementation baseline.
+
+The internal component split SHALL NOT create additional public services or public interfaces.
+
+---
+
+# 16. Package Structure
+
+The implementation SHALL use the package structure established by the approved IWP-001 baseline:
 
 ```text
-VIBE_
+86-vibe-cli/
+├── src/
+│   └── vibe/
+│       └── configuration/
+└── tests/
 ```
 
-Examples:
+The public package SHALL be `vibe.configuration`, and the primary public class SHALL be `ConfigurationService`.
+
+Internal modules MAY be added beneath `vibe.configuration` only where required to implement approved responsibilities and consistent with repository conventions.
+
+No `vibe.config` compatibility module or parallel implementation SHALL be created.
+
+---
+
+# 17. Implementation Notes
+
+Cursor SHALL implement the service according to the approved architecture and the existing IWP-001 baseline in `86-vibe-cli`.
+
+Implementation notes:
+
+- Preserve existing repository tooling, package exports, exception conventions, typing conventions, and test organization.
+- Use YAML for project configuration.
+- Use an existing approved YAML dependency where present.
+- If no YAML dependency exists, add one only when permitted by the approved dependency policy; otherwise stop and report the unresolved dependency.
+- Separate raw, parsed, validated, and immutable runtime configuration.
+- Do not expose mutable internal state.
+- Do not implement an ad hoc YAML parser.
+- Do not introduce user-level, global, remote, database, cloud, or secrets-manager configuration sources.
+- Do not implement production versions of later-IWP services.
+- Use test doubles only where needed to verify approved integration boundaries.
+
+No architectural assumptions may be introduced.
+
+No implementation behavior may be invented.
+
+---
+
+# 18. Acceptance Criteria
+
+The implementation SHALL be considered complete when:
+
+- the public `vibe.configuration.ConfigurationService` contract is implemented;
+- approved configuration sources load deterministically;
+- approved precedence is enforced;
+- valid configuration passes validation;
+- invalid configuration is rejected before dependent services initialize;
+- typed, read-only runtime configuration is exposed;
+- configuration lookup, existence testing, validation, export, reload, and shutdown behave as documented;
+- reload preserves the previous configuration following a failed replacement;
+- configuration access and reload are thread-safe;
+- approved logging, security, lifecycle, registration, and health integration boundaries are preserved;
+- no unsupported environment-variable mapping is implemented;
+- no additional configuration source, service, dependency, or public API is introduced;
+- unit and integration tests pass;
+- formatting, linting, type checking, and repository-defined quality gates pass; and
+- existing IWP-001 tests continue to pass.
+
+Implementation SHALL satisfy all approved architectural requirements.
+
+---
+
+# End of Part 1A
+
+# IWP-002-01 — Configuration Service Implementation Specification
+
+---
+
+# 19. Service State Management
+
+The Configuration Service SHALL maintain its internal state in accordance with the approved architecture.
+
+Service state SHALL distinguish at minimum:
+
+- constructed but not initialized;
+- initialization in progress;
+- initialized with immutable active configuration;
+- reload in progress;
+- failed initialization or failed reload; and
+- shutdown.
+
+State transitions SHALL be deterministic.
+
+The implementation SHALL prevent invalid state transitions.
+
+A failed reload SHALL leave the previously active configuration and initialized state unchanged.
+
+---
+
+# 20. Internal Processing
+
+The service SHALL execute the following internal processing pipeline:
 
 ```text
-VIBE_LOGGING_LEVEL=DEBUG
-
-VIBE_PLATFORM_NAME=86-vibe
-
-VIBE_AI_PROVIDER=openrouter
+Load Platform Defaults
+        ↓
+Load Project Configuration
+        ↓
+Load Documented Environment Variables
+        ↓
+Apply CLI or Runtime Overrides
+        ↓
+Validate Configuration
+        ↓
+Freeze Runtime Configuration
+        ↓
+Publish Service Availability
 ```
 
-Mapping rules:
+Each processing stage SHALL complete before the next stage begins.
 
-- uppercase
-- underscore separated
-- deterministic conversion
-- nested configuration supported
+Reload SHALL repeat the approved loading, precedence, validation, and freezing stages before atomically replacing the active configuration.
 
-Example mapping:
-
-```text
-VIBE_PLATFORM_NAME
-```
-
-becomes
-
-```text
-platform.name
-```
-
-Environment variables shall override YAML configuration.
-
-Environment variables shall not modify configuration files.
+Internal processing SHALL remain encapsulated within the service boundary.
 
 ---
 
-## 17. Runtime Overrides
+# 21. Dependency Management
 
-The service shall support runtime overrides supplied during initialization.
+The Configuration Service SHALL have no mandatory platform-service dependencies during initialization.
 
-These overrides shall have the highest precedence.
+Dependency management SHALL include:
 
-Runtime overrides shall:
+- use of Python standard-library facilities;
+- use of repository utilities established by IWP-001 where architecturally permitted;
+- use of an approved YAML dependency; and
+- later attachment to approved lifecycle, registry, logging, and health integrations only through their public interfaces.
 
-- remain immutable after initialization
-- be included in exported effective configuration
-- participate in validation
+The service SHALL NOT depend on Logging, Bootstrap, Repository, AI Provider, MCP Client, Event Bus, Service Registry, Lifecycle Manager, or Health Monitoring services during its initialization.
 
-Example:
+No circular, hidden, or direct cross-service dependency SHALL be introduced.
 
-```python
-ConfigurationService(
-    overrides={
-        "logging.level": "DEBUG"
-    }
-)
-```
+Unavailable optional integration points SHALL NOT cause the Configuration Service to construct future services manually.
 
 ---
 
-## 18. Validation
+# 22. Health Monitoring
 
-Validation shall occur immediately after configuration loading.
+The Configuration Service SHALL expose health information through the approved Health Monitoring Service when that service is present in the implementation baseline.
 
-Validation shall verify:
+Health reporting SHALL include:
 
-- required sections exist
-- required keys exist
-- supported value types
-- supported enumerations
-- supported numeric ranges
-- supported boolean values
-- valid nested structures
+- operational lifecycle state;
+- readiness following successful validation and freezing;
+- failure information that does not expose secrets; and
+- dependency status where applicable.
 
-Validation failures shall never be deferred until first use.
+The Configuration Service SHALL NOT expose an independent health API.
 
----
-
-## 19. Configuration Reload
-
-The service contract requires reload capability.
-
-Reload shall:
-
-1. reload supported configuration sources
-2. reapply precedence
-3. perform validation
-4. replace runtime configuration atomically
-
-If validation fails:
-
-- previous configuration shall remain active
-- partial configuration shall never become active
-
-Reload shall be thread safe.
+IWP-002 SHALL preserve the approved health integration boundary and SHALL NOT implement the Health Monitoring Service assigned to IWP-013.
 
 ---
 
-## 20. Thread Safety
+# 23. Diagnostics
 
-ARP-002 identifies the Configuration Service as thread safe.
+The service SHALL support approved platform diagnostics.
 
-The implementation shall therefore ensure:
+Diagnostics SHALL include:
 
-- atomic initialization
-- atomic reload
-- immutable runtime configuration
-- safe concurrent readers
+- configuration source identity without unnecessary local-path disclosure;
+- validation status;
+- applied override names without sensitive values;
+- current lifecycle and readiness state; and
+- deterministic error classification.
 
-Readers shall never observe partially updated configuration.
+Diagnostic output SHALL remain deterministic and suitable for automated analysis.
 
----
-
-## 21. Error Handling
-
-The service shall define configuration-specific exceptions.
-
-Expected hierarchy:
-
-```text
-ConfigurationError
-│
-├── ConfigurationLoadError
-├── ConfigurationValidationError
-├── ConfigurationKeyError
-└── ConfigurationReloadError
-```
-
-If IWP-001 already defines a common platform exception hierarchy, these exceptions shall inherit from the approved base class.
-
-Exceptions shall include useful diagnostic information without exposing:
-
-- secrets
-- API keys
-- tokens
-- credentials
-- local filesystem information beyond what is necessary
+Sensitive information SHALL be excluded or masked.
 
 ---
 
-## 22. Internal Package Layout
+# 24. Recovery Behaviour
 
-Cursor shall implement the Configuration Service using the repository structure established by IWP-001.
+The service SHALL implement recovery behavior only where defined by the approved reload contract.
 
-Expected logical layout:
+Recovery behavior SHALL include:
 
-```text
-src/
-└── vibe/
-    └── config/
-        __init__.py
-        service.py
-        loader.py
-        validator.py
-        merger.py
-        models.py
-        exceptions.py
-        environment.py
-```
+- building and validating a replacement configuration separately from the active configuration;
+- retaining the previous active configuration when reload fails;
+- preventing partial configuration from becoming active; and
+- permitting a later valid reload when lifecycle state allows it.
 
-If IWP-001 already created equivalent modules, extend them rather than introducing parallel implementations.
+Recovery operations SHALL preserve service consistency.
 
-No duplicate implementations shall exist.
+The implementation SHALL NOT introduce automatic remote recovery, fallback sources, or undocumented retry behavior.
 
 ---
 
-## 23. Internal Responsibilities
+# 25. Resource Cleanup
 
-### service.py
+The service SHALL release all allocated resources during shutdown.
 
-Responsible for:
+Resources include:
 
-- lifecycle
-- public API
-- orchestration
+- open file handles;
+- temporary loading and validation data; and
+- synchronization resources owned by the service.
 
-Shall not perform parsing directly.
+Resource cleanup SHALL be idempotent.
 
----
-
-### loader.py
-
-Responsible for:
-
-- reading YAML
-- loading defaults
-- locating project configuration
-- reading configuration files
+Repeated shutdown requests SHALL NOT result in resource leaks or partially released state.
 
 ---
 
-### merger.py
+# 26. Extension Points
 
-Responsible for:
+Extension points SHALL exist only where explicitly defined by the approved architecture.
 
-- precedence rules
-- merging dictionaries
-- runtime override application
+Supported extension points include future configuration providers that:
 
----
+- implement the approved public configuration-provider interface;
+- participate in approved precedence resolution;
+- support validation and deterministic loading; and
+- preserve existing consumer behavior.
 
-### validator.py
+Any new provider or precedence change SHALL require approved architecture.
 
-Responsible for:
+No undocumented extension mechanisms SHALL be introduced.
 
-- schema validation
-- required values
-- supported values
-- type checking
+Unknown configuration sections SHALL remain backward-compatible and SHALL be ignored by consumers unless explicitly configured to reject them.
 
 ---
 
-### environment.py
+# 27. Testing Requirements
 
-Responsible for:
+Cursor SHALL implement deterministic automated tests covering:
 
-- discovering environment variables
-- converting names
-- parsing values
-- producing override dictionaries
+- initialization and shutdown;
+- the complete public interface;
+- built-in defaults;
+- project YAML discovery and parsing;
+- documented environment-variable overrides;
+- CLI/runtime overrides;
+- exact source precedence;
+- schema, required-field, type, enumeration, file, and directory validation where applicable;
+- missing and malformed configuration;
+- unknown sections and properties;
+- duplicate-key handling;
+- immutable runtime configuration;
+- typed values;
+- secret redaction;
+- successful and failed reload;
+- preservation of active configuration after failed reload;
+- concurrent readers and reads during reload;
+- lifecycle behavior;
+- approved logging behavior;
+- health-reporting integration boundaries;
+- registration integration boundaries; and
+- absence of dependencies on later-IWP services during initialization.
 
----
+Tests SHALL be deterministic.
 
-### models.py
+External services SHALL be represented only by local test doubles where required to verify an approved boundary.
 
-Responsible for:
-
-- immutable configuration models
-- typed objects
-- configuration sections
-
----
-
-### exceptions.py
-
-Responsible for:
-
-- configuration-specific exception hierarchy
-
----
-
-## 24. Dependency Rules
-
-The Configuration Service shall not depend upon:
-
-- Logging Service
-- Bootstrap Service
-- Event Bus
-- AI Provider Layer
-- MCP Client
-- Repository Service
-
-Those services are implemented in later IWPs.
-
-The Configuration Service may use:
-
-- Python standard library
-- repository utilities established in IWP-001
-- approved YAML dependency
-
-No additional architectural dependencies shall be introduced.
+The full repository test suite and repository-defined quality checks SHALL pass.
 
 ---
 
-## 25. Lifecycle Integration
+# 28. Documentation Requirements
 
-Although Bootstrap Service is not yet implemented, the Configuration Service shall expose lifecycle methods compatible with the future lifecycle manager.
+Implementation documentation SHALL include:
 
-Required lifecycle methods:
+- module documentation;
+- public API documentation;
+- parameter, return, and documented-exception information;
+- approved configuration sources and precedence;
+- supported documented environment variables;
+- default values;
+- validation and reload behavior;
+- security and redaction behavior;
+- architecture references; and
+- implementation notes where beneficial.
 
-- initialize()
-- shutdown()
-- reload()
+Documentation SHALL accurately describe the implemented behavior.
 
-Lifecycle methods shall be idempotent where appropriate.
+Examples SHALL remain consistent with the approved architecture and SHALL NOT contain secrets.
 
-Shutdown shall release resources cleanly.
-
----
-
-## 26. Logging
-
-Because Logging Service has not yet been implemented, the Configuration Service shall not implement its own logging framework.
-
-If IWP-001 established a temporary logging abstraction, use it.
-
-Otherwise:
-
-- avoid print()
-- avoid custom logging implementations
-- keep diagnostics limited to exceptions
-
-Future integration with IWP-003 shall require minimal modification.
+Documentation SHALL remain synchronized with implementation.
 
 ---
 
-## 27. Documentation
+# 29. Acceptance Criteria
 
-Every public class shall include:
+Implementation SHALL be accepted only when:
 
-- docstring
-- purpose
-- parameter documentation
-- return documentation
-- exception documentation where appropriate
+- all criteria in §18 are satisfied;
+- every SHALL statement in this specification is implemented or verified as an integration boundary assigned to a later approved work package;
+- Configuration Service requirements in AEP-002-05, ARP-002-02, and ARP-002-16 are traceable to implementation and tests;
+- dependency direction conforms to ARP-001-03 and AEP-002-17;
+- the public package remains `vibe.configuration` in `86-vibe-cli`;
+- no `vibe.config` compatibility package or duplicate implementation exists;
+- no architecture or template modification is required;
+- no Critical or Major implementation-review findings remain open; and
+- the implementation is ready for human review and merge.
 
-Internal helper methods should also include concise documentation where complexity warrants.
-
----
-
-## 28. Python Standards
-
-Implementation shall comply with ARP-001-05.
-
-Requirements include:
-
-- Python 3.11+
-- complete type hints
-- dataclasses where appropriate
-- immutable configuration objects
-- small focused methods
-- descriptive naming
-- no wildcard imports
-- no global mutable state
-- no hidden side effects
-
-Cursor shall follow repository formatting conventions.
+All acceptance criteria SHALL be satisfied before implementation is considered complete.
 
 ---
 
-## 29. Security Requirements
+# 30. Implementation Boundary
 
-The Configuration Service shall never:
+This document specifies only the implementation of the Configuration Service for IWP-002.
 
-- log secrets
-- export secrets unintentionally
-- commit generated configuration
-- write configuration without explicit request
+Responsibilities assigned to Logging Service, Bootstrap Service, Service Registry, Service Lifecycle Manager, CLI Framework, Validation Framework, Repository Service, Prompt Management Service, AI Provider Layer, MCP Client Service, Health Monitoring Service, Event Bus Service, Plugin Manager Service, Platform Context Service, and end-to-end integration SHALL remain unchanged.
 
-Sensitive values shall be masked where exported for diagnostics.
+Implementation SHALL NOT extend beyond the approved Configuration Service boundary.
 
----
+Implementation SHALL stop and report an ambiguity if compliance would require:
 
-## 30. Unit Testing Requirements
-
-Cursor shall implement a comprehensive unit test suite for the Configuration Service.
-
-The objective is to verify the Configuration Service independently of all future platform services.
-
-The unit test suite shall include, at minimum, the following scenarios.
-
-### Initialization
-
-- Service initializes successfully using default configuration.
-- Service initializes successfully using project configuration.
-- Service initializes successfully using runtime overrides.
-- Initialization is idempotent where defined by the service contract.
-- Initialization fails deterministically on invalid configuration.
-
-### Configuration Loading
-
-- Built-in defaults are loaded.
-- Project configuration is loaded.
-- Missing optional configuration behaves as defined.
-- Missing mandatory configuration produces the correct exception.
-- Invalid YAML produces the correct exception.
-- Unsupported configuration keys are handled according to the approved architecture.
-- Invalid value types are rejected.
-
-### Configuration Merge
-
-Verify precedence exactly matches the approved architecture.
-
-Tests shall verify:
-
-```
-Defaults
-    ↓
-Project Configuration
-    ↓
-Environment Variables
-    ↓
-Runtime Overrides
-```
-
-Each higher precedence source shall override the lower source without modifying the original source.
-
-### Environment Variables
-
-Tests shall verify:
-
-- supported environment variables are detected
-- nested values are correctly mapped
-- invalid values are rejected
-- unsupported variables are ignored unless otherwise specified
-- environment overrides supersede project configuration
-
-### Runtime Overrides
-
-Tests shall verify:
-
-- runtime overrides supersede all other configuration
-- overrides participate in validation
-- exported configuration contains runtime overrides
-- overrides remain immutable after initialization
-
-### Access Methods
-
-Tests shall verify:
-
-- get()
-- exists()
-- get_section()
-- export()
-
-Examples include:
-
-- existing keys
-- missing keys
-- nested keys
-- optional defaults
-- invalid lookups
-
-### Validation
-
-Tests shall verify:
-
-- required sections
-- required keys
-- invalid enumerations
-- invalid numeric ranges
-- invalid boolean values
-- invalid nested structures
-
-### Reload
-
-Tests shall verify:
-
-- successful reload
-- failed reload
-- previous configuration remains active after failed reload
-- atomic replacement of configuration
-
-### Thread Safety
-
-Tests shall verify:
-
-- concurrent readers
-- concurrent reads during reload
-- configuration consistency
-
-The objective is to demonstrate that readers never observe partially updated configuration.
+- changing an approved public interface;
+- changing the approved repository or public package;
+- introducing a new dependency or configuration source;
+- implementing a future service;
+- changing approved precedence or lifecycle ordering; or
+- resolving conflicting architecture through an implementation assumption.
 
 ---
 
-## 31. Integration Testing Requirements
-
-Integration tests shall verify the Configuration Service operating within the repository baseline established by IWP-001.
-
-The integration suite shall include, at minimum:
-
-### Repository Integration
-
-- configuration file discovered correctly
-- configuration loaded from repository
-- expected directory layout supported
-
-### Service Lifecycle
-
-- initialize()
-- reload()
-- shutdown()
-
-### Effective Configuration
-
-Verify exported effective configuration accurately reflects:
-
-- defaults
-- project configuration
-- environment overrides
-- runtime overrides
-
-### Failure Behaviour
-
-Integration tests shall verify:
-
-- invalid YAML
-- missing files
-- malformed values
-- reload failures
-
----
-
-## 32. Test Directory Layout
-
-Cursor shall follow the repository structure established by IWP-001.
-
-Expected logical layout:
-
-```text
-tests/
-├── unit/
-│   └── config/
-│       test_loader.py
-│       test_merger.py
-│       test_validator.py
-│       test_environment.py
-│       test_service.py
-│
-└── integration/
-    └── config/
-        test_configuration_service.py
-```
-
-If IWP-001 established different naming conventions, follow those conventions consistently.
-
----
-
-## 33. Quality Requirements
-
-Before completion, Cursor shall execute all repository quality checks established by IWP-001.
-
-This normally includes the equivalent of:
-
-```bash
-ruff check .
-
-ruff format --check .
-
-mypy .
-
-pytest
-```
-
-If the repository defines additional mandatory commands, they shall also be executed.
-
-No failing quality checks are permitted.
-
----
-
-## 34. Acceptance Criteria
-
-IWP-002 shall be considered complete only when all of the following are true.
-
-### Functional
-
-- Configuration Service implemented.
-- Public service contract implemented.
-- Configuration successfully loaded.
-- Configuration precedence implemented.
-- Environment overrides implemented.
-- Runtime overrides implemented.
-- Typed configuration available.
-- Configuration validation implemented.
-- Configuration reload implemented.
-- Configuration export implemented.
-
-### Architectural
-
-- No architecture redesign.
-- No new platform services introduced.
-- Public service contract preserved.
-- Package dependencies conform to ARP-001.
-- Platform Service Contract Compliance Matrix satisfied.
-- Thread safety requirements satisfied.
-
-### Engineering
-
-- Complete type hints.
-- Public API documentation.
-- Unit tests implemented.
-- Integration tests implemented.
-- Repository quality checks pass.
-- Existing IWP-001 tests continue to pass.
-
----
-
-## 35. Deliverables
-
-This implementation package shall produce:
-
-- Configuration Service implementation
-- supporting internal modules
-- configuration models
-- validation logic
-- merge logic
-- environment variable support
-- exception hierarchy
-- unit tests
-- integration tests
-- updated package exports
-- updated developer documentation where required
-
-No unrelated code shall be modified.
-
----
-
-## 36. Files Expected to Change
-
-The exact file list shall depend upon the IWP-001 baseline.
-
-Expected changes include:
-
-```text
-src/vibe/config/
-tests/unit/config/
-tests/integration/config/
-```
-
-Potential updates may also include:
-
-```text
-pyproject.toml
-README.md
-src/vibe/__init__.py
-```
-
-Only where required by the approved architecture or repository conventions.
-
----
-
-## 37. Commit Guidance
-
-Create a single implementation commit.
-
-Suggested commit message:
-
-```text
-feat(config): implement IWP-002 Configuration Service
-```
-
-Do not combine unrelated refactoring.
-
-Do not include generated files.
-
-Do not include local configuration.
-
-Do not include IDE artifacts.
-
----
-
-## 38. Completion Report
-
-When implementation has completed, Cursor shall provide the following report.
-
-```text
-IWP-002 Completion Report
-
-Implementation Summary
-----------------------
-Brief description of the completed Configuration Service.
-
-Architecture Compliance
------------------------
-- ARP-002-02 Configuration Service Interface Contract: PASS
-- ARP-002-16 Platform Service Contract Compliance Matrix: PASS
-- ARP-001-05 Engineering Coding Standards: PASS
-
-Repository Impact
------------------
-Files Added:
-- ...
-
-Files Modified:
-- ...
-
-Files Removed:
-- None (unless explicitly justified)
-
-Testing
--------
-Unit Tests:
-- Passed
-
-Integration Tests:
-- Passed
-
-Quality Checks:
-- Ruff: PASS
-- MyPy: PASS
-- PyTest: PASS
-
-Implementation Notes
---------------------
-Document any assumptions made that were explicitly permitted by the approved architecture.
-
-Known Limitations
------------------
-None unless explicitly identified.
-
-Ready For Review
-----------------
-YES
-```
-
----
-
-## 39. Definition of Done
-
-This implementation package is complete when:
-
-- all acceptance criteria have been satisfied
-- all tests pass
-- repository quality gates pass
-- implementation complies with the approved architecture
-- no architectural drift has been introduced
-- implementation is ready for human review
-- implementation is suitable for merge into the `86-vibe-cli` implementation repository
-
-No additional functionality shall be implemented beyond the scope of IWP-002.
-
----
-
-## 40. Cursor Execution Instructions
-
-Before writing code, Cursor shall:
-
-1. Inspect the existing repository produced by IWP-001.
-2. Review the governing architecture documents referenced by this specification.
-3. Confirm package locations and existing implementation conventions.
-4. Implement the Configuration Service strictly within the scope defined by this document.
-5. Execute all quality gates.
-6. Produce the required completion report.
-7. Stop.
-
-Do **not** begin IWP-003.
-
----
+# End of Part 1B
 
 # END OF FILE
